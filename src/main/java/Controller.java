@@ -1,5 +1,9 @@
 import org.apache.commons.cli.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 /**
  * Created by Sander on 14-9-2016.
  */
@@ -8,6 +12,7 @@ public class Controller {
     private CommandLine commandLine;
     private final Options options;
     private final String passPhrase;
+    private final String fileName;
 
     Controller(String[] args) throws Exception {
         this.options = getOptions();
@@ -16,12 +21,13 @@ public class Controller {
         try {
             CommandLine commandLine = parser.parse(options, args);
 
-            if (commandLine.getArgs().length != 1) {
+            if (commandLine.getArgs().length != 2) {
                 throw new ParseException("The encryption key and only the encryption key should be passed as a non flag argument.");
             }
 
             this.commandLine = commandLine;
             passPhrase = commandLine.getArgs()[0];
+            fileName = commandLine.getArgs()[1];
         } catch (ParseException e) {
             System.out.println("Incorrect arguments:");
             printHelpPage();
@@ -43,17 +49,42 @@ public class Controller {
         return options;
     }
 
-    public void run() {
+    public void run() throws IOException, ParseException {
         if (passPhrase.equals("help") || commandLine.hasOption("h")) {
             printHelpPage();
             return;
         }
 
-        System.out.println("Running Feistel with options -o: "
-                + commandLine.hasOption('d') + " and key: " + passPhrase);
+        System.out.println("Running Feistel with options -d: "
+                + commandLine.hasOption('d') +
+                " and key: " + passPhrase +
+                " and input file: " + fileName);
 
-        new FeistelCipher(passPhrase)
+        byte[] fileContent;
+
+        if (commandLine.hasOption('d')) {
+            fileContent = Files.readAllBytes(Paths.get(fileName));
+        } else {
+            fileContent = Files.lines(Paths.get(fileName))
+                    .reduce((firstLine, secondLine) -> firstLine + "\n" + secondLine)
+                    .orElseThrow(() -> new ParseException("Failed to read the encrypted file"))
+                    .getBytes();
+        }
+
+        System.out.println(new String(fileContent));
+
+        byte[] result = new FeistelCipher(passPhrase)
                 .setDecrypting(commandLine.hasOption('d'))
-                .run(System.in);
+                .run(fileContent);
+
+        System.out.println(new String(result));
+
+        if (commandLine.hasOption('d')) {
+            String decryptedFile = "decrypted_" + fileName + ".txt";
+            Files.write(Paths.get(decryptedFile), result);
+        } else {
+            String decryptedFile = "encrypted_" + fileName + ".enc.Feistel";
+            Files.write(Paths.get(decryptedFile), result);
+        }
     }
 }

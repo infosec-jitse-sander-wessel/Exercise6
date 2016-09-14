@@ -6,8 +6,9 @@ public class Main {
         try {
             Controller controller = new Controller(args);
             controller.run();
-        } catch (Exception ignored) {
-            // we let the program end.
+        } catch (Exception e) {
+            System.out.println("Application quit due to: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
