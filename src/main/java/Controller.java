@@ -21,15 +21,15 @@ public class Controller {
         try {
             CommandLine commandLine = parser.parse(options, args);
 
-            if (commandLine.getArgs().length != 2) {
+            if (commandLine.getArgs().length < 2) {
                 throw new ParseException("The encryption key and only the encryption key should be passed as a non flag argument.");
             }
 
             this.commandLine = commandLine;
-            passPhrase = commandLine.getArgs()[0];
-            fileName = commandLine.getArgs()[1];
+            fileName = commandLine.getArgs()[0];
+            passPhrase = commandLine.getArgs()[1];
         } catch (ParseException e) {
-            System.out.println("Incorrect arguments:");
+            System.out.println("Incorrect arguments:" + e.getMessage());
             printHelpPage();
             throw new Exception("incorrect input program should close");
         }
