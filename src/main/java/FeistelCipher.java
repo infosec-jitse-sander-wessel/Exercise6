@@ -23,25 +23,30 @@ public class FeistelCipher {
         return ArrayUtils.addAll(firstShaBytes, secondShaBytes);
     }
 
-    public byte[] run(byte[] input) {
-        return mapLine(input);
+    public byte[] encrypt(byte[] input) {
+        byte[] paddedInput = ArrayUtils.addAll(input, getPadding(input.length));
+        return encrypt(paddedInput, roundKeys);
     }
 
-    private byte[] mapLine(byte[] input) {
-        byte[] bytes = ArrayUtils.addAll(input, getPadding(input.length));
+    public byte[] decrypt(byte[] input) {
+        byte[] reversedRounds = getReversedRounds(roundKeys);
+        byte[] reversedBlocksInput = reverseBlocks(input);
+        byte[] result = encrypt(reversedBlocksInput, reversedRounds);
+        result = reverseBlocks(result);
+        int padding = result[result.length - 1];
+        result = Arrays.copyOf(result, result.length - padding);
+        return result;
+    }
 
+    private byte[] encrypt(byte[] input, byte[] rounds) {
         byte[] result = new byte[0];
 
-        for (int blockStart = 0; blockStart < bytes.length; blockStart += 8) {
-            byte[] blockToEncrypt = Arrays.copyOfRange(bytes, blockStart, blockStart + 8);
-            for (int rounds = 0; rounds < 16; rounds++) {
+        for (int blockStart = 0; blockStart < input.length; blockStart += 8) {
+            byte[] blockToEncrypt = Arrays.copyOfRange(input, blockStart, blockStart + 8);
+            for (int roundCounter = 0; roundCounter < 16; roundCounter++) {
                 byte[] newLeft = Arrays.copyOfRange(blockToEncrypt, 4, 8);
                 byte[] newRight = Arrays.copyOfRange(blockToEncrypt, 0, 4);
-                if (decrypt) {
-                    newLeft = getRightHalf(newLeft, rounds * 4);
-                } else {
-                    newRight = getRightHalf(newRight, rounds * 4);
-                }
+                newRight = xor(rounds, newRight, roundCounter * 4);
                 blockToEncrypt = ArrayUtils.addAll(newLeft, newRight);
             }
             result = ArrayUtils.addAll(result, blockToEncrypt);
@@ -56,24 +61,31 @@ public class FeistelCipher {
         return padded;
     }
 
-    private byte[] getRightHalf(byte[] leftHalf, int roundStart) {
+    private byte[] xor(byte[] keys, byte[] leftHalf, int roundStart) {
         byte[] result = new byte[leftHalf.length];
         for (int i = 0; i < leftHalf.length; i++) {
-            result[i] = (byte) (leftHalf[i] ^ roundKeys[roundStart + i]);
+            result[i] = (byte) (leftHalf[i] ^ keys[roundStart + i]);
         }
         return result;
     }
 
-    public FeistelCipher setDecrypting(boolean decrypt) {
-        this.decrypt = decrypt;
-        if (decrypt) {
-            byte[] reversedRounds = new byte[0];
-            for (int i = roundKeys.length; i > 3; i -= 4) {
-                byte[] block = Arrays.copyOfRange(roundKeys, i - 4, i);
-                reversedRounds = ArrayUtils.addAll(reversedRounds, block);
-            }
-            roundKeys = reversedRounds;
+    private byte[] getReversedRounds(byte[] rounds) {
+        byte[] reversedRounds = new byte[0];
+        for (int i = rounds.length; i > 3; i -= 4) {
+            byte[] block = Arrays.copyOfRange(rounds, i - 4, i);
+            reversedRounds = ArrayUtils.addAll(reversedRounds, block);
         }
-        return this;
+        return reversedRounds;
+    }
+
+    private byte[] reverseBlocks(byte[] input) {
+        byte[] result = new byte[0];
+        for (int blockStart = 0; blockStart < input.length; blockStart += 8) {
+            byte[] newLeft = Arrays.copyOfRange(input, blockStart + 4, blockStart + 8);
+            byte[] newRight = Arrays.copyOfRange(input, blockStart, blockStart + 4);
+            byte[] reversed = ArrayUtils.addAll(newLeft, newRight);
+            result = ArrayUtils.addAll(result, reversed);
+        }
+        return result;
     }
 }
