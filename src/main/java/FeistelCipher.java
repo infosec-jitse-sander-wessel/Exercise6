@@ -41,14 +41,21 @@ public class FeistelCipher {
     private byte[] encrypt(byte[] input, byte[] rounds) {
         byte[] result = new byte[0];
 
+        // we run over the input one block at a time
         for (int blockStart = 0; blockStart < input.length; blockStart += 8) {
             byte[] blockToEncrypt = Arrays.copyOfRange(input, blockStart, blockStart + 8);
+
+            // we will run 16 rounds for each block
             for (int roundCounter = 0; roundCounter < 16; roundCounter++) {
+                // next round left and right will be swapped
                 byte[] newLeft = Arrays.copyOfRange(blockToEncrypt, 4, 8);
                 byte[] newRight = Arrays.copyOfRange(blockToEncrypt, 0, 4);
+                // the right side will be xored with our current rounds key schedule result
                 newRight = xor(rounds, newRight, roundCounter * 4);
+
                 blockToEncrypt = ArrayUtils.addAll(newLeft, newRight);
             }
+
             result = ArrayUtils.addAll(result, blockToEncrypt);
         }
         return result;
