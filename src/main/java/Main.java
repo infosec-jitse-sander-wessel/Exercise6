@@ -9,6 +9,7 @@ public class Main {
         } catch (Exception e) {
             System.out.println("Application quit due to: " + e.getMessage());
             e.printStackTrace();
+            System.exit(1);
         }
     }
 }
