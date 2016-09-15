@@ -31,11 +31,12 @@ public class FeistelCipher {
     public byte[] decrypt(byte[] input) {
         byte[] reversedRounds = getReversedRounds(roundKeys);
         byte[] reversedBlocksInput = reverseBlocks(input);
+
         byte[] result = encrypt(reversedBlocksInput, reversedRounds);
         result = reverseBlocks(result);
-        int padding = result[result.length - 1];
-        result = Arrays.copyOf(result, result.length - padding);
-        return result;
+
+        int paddingSize = result[result.length - 1];
+        return Arrays.copyOf(result, result.length - paddingSize);
     }
 
     private byte[] encrypt(byte[] input, byte[] rounds) {
@@ -51,7 +52,8 @@ public class FeistelCipher {
                 byte[] newLeft = Arrays.copyOfRange(blockToEncrypt, 4, 8);
                 byte[] newRight = Arrays.copyOfRange(blockToEncrypt, 0, 4);
                 // the right side will be xored with our current rounds key schedule result
-                newRight = xor(rounds, newRight, roundCounter * 4);
+                byte[] key = keyFromSchedule(rounds, roundCounter);
+                newRight = xor(key, newRight);
 
                 blockToEncrypt = ArrayUtils.addAll(newLeft, newRight);
             }
@@ -61,6 +63,10 @@ public class FeistelCipher {
         return result;
     }
 
+    private byte[] keyFromSchedule(byte[] rounds, int roundCounter) {
+        return Arrays.copyOfRange(rounds, roundCounter * 4, (roundCounter + 1) * 4);
+    }
+
     private byte[] getPadding(int length) {
         int padding = 8 - (length % 8);
         byte[] padded = new byte[padding];
@@ -68,10 +74,10 @@ public class FeistelCipher {
         return padded;
     }
 
-    private byte[] xor(byte[] keys, byte[] leftHalf, int roundStart) {
+    private byte[] xor(byte[] keys, byte[] leftHalf) {
         byte[] result = new byte[leftHalf.length];
         for (int i = 0; i < leftHalf.length; i++) {
-            result[i] = (byte) (leftHalf[i] ^ keys[roundStart + i]);
+            result[i] = (byte) (leftHalf[i] ^ keys[i]);
         }
         return result;
     }
