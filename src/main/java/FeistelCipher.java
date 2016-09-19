@@ -5,11 +5,11 @@ import java.util.Arrays;
 
 /**
  * Created by Sander on 14-9-2016.
+ * The Feistel algorithm with a simplified key-schedule.
  */
 public class FeistelCipher {
 
     private byte[] roundKeys;
-    private boolean decrypt = false;
 
     public FeistelCipher(String passPhrase) {
         roundKeys = createRounds(passPhrase);
